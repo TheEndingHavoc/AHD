@@ -1,0 +1,482 @@
+﻿local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:FindFirstChildOfClass("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ScriptGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 355)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.3
+frame.BorderSizePixel = 2
+frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+frame.Parent = screenGui
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 10)
+frameCorner.Parent = frame
+
+-- Title Label
+local title = Instance.new("TextLabel")
+title.Text = "A Hero's Destiny Script" -- Updated title text
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 16
+title.Parent = frame
+
+-- Dragging Implementation (From Provided Script)
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Auto Skills Section
+local autoSkillsEnabled = false
+local autoSkillsLoopRunning = false
+local selectedSkills = {"E", "R", "C", "F"} -- Default selected skills
+
+local skillsButton = Instance.new("TextButton")
+skillsButton.Text = "Auto Skills: OFF"
+skillsButton.Size = UDim2.new(1, 0, 0, 35)
+skillsButton.Position = UDim2.new(0, 0, 0, 40)
+skillsButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+skillsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+skillsButton.Font = Enum.Font.SourceSansSemibold
+skillsButton.TextSize = 14
+skillsButton.Parent = frame
+local skillsButtonCorner = Instance.new("UICorner")
+skillsButtonCorner.CornerRadius = UDim.new(0, 8)
+skillsButtonCorner.Parent = skillsButton
+
+local function spamActions()
+    while autoSkillsEnabled do
+        for _, key in ipairs(selectedSkills) do
+            VirtualInputManager:SendKeyEvent(true, key, false, game)
+            task.wait(0.1)
+            VirtualInputManager:SendKeyEvent(false, key, false, game)
+        end
+        task.wait(0.1)
+    end
+    autoSkillsLoopRunning = false
+end
+
+skillsButton.MouseButton1Click:Connect(function()
+    autoSkillsEnabled = not autoSkillsEnabled
+    skillsButton.Text = "Auto Skills: " .. (autoSkillsEnabled and "ON" or "OFF")
+    if autoSkillsEnabled and not autoSkillsLoopRunning then
+        autoSkillsLoopRunning = true
+        task.spawn(spamActions)
+    end
+end)
+
+-- Select Keys
+local selectSkillsButton = Instance.new("TextButton")
+selectSkillsButton.Text = "Select Skills"
+selectSkillsButton.Size = UDim2.new(1, 0, 0, 35)
+selectSkillsButton.Position = UDim2.new(0, 0, 0, 80) -- Adjusted position with gap
+selectSkillsButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+selectSkillsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectSkillsButton.Font = Enum.Font.SourceSansSemibold
+selectSkillsButton.TextSize = 14
+selectSkillsButton.Parent = frame
+local selectSkillsButtonCorner = Instance.new("UICorner")
+selectSkillsButtonCorner.CornerRadius = UDim.new(0, 8)
+selectSkillsButtonCorner.Parent = selectSkillsButton
+
+local skillsSelectionFrame -- Declare outside the function
+
+selectSkillsButton.MouseButton1Click:Connect(function()
+    if skillsSelectionFrame and skillsSelectionFrame.Parent then
+        skillsSelectionFrame:Destroy()
+        skillsSelectionFrame = nil
+        return
+    end
+
+    skillsSelectionFrame = Instance.new("Frame")
+    skillsSelectionFrame.Size = UDim2.new(0, 200, 0, 200)
+    skillsSelectionFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+    skillsSelectionFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    skillsSelectionFrame.BorderSizePixel = 2
+    skillsSelectionFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    skillsSelectionFrame.Parent = screenGui
+    local skillsSelectionFrameCorner = Instance.new("UICorner")
+    skillsSelectionFrameCorner.CornerRadius = UDim.new(0, 10)
+    skillsSelectionFrameCorner.Parent = skillsSelectionFrame
+
+    local selectionTitle = Instance.new("TextLabel")
+    selectionTitle.Text = "Select Skills"
+    selectionTitle.Size = UDim2.new(1, 0, 0, 30)
+    selectionTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    selectionTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    selectionTitle.Font = Enum.Font.SourceSansBold
+    selectionTitle.TextSize = 16
+    selectionTitle.Parent = skillsSelectionFrame
+
+    local skillButtons = {"E", "R", "C", "F"}
+    local buttonY = 30
+
+    for _, skill in ipairs(skillButtons) do
+        local skillButton = Instance.new("TextButton")
+        skillButton.Text = skill
+        skillButton.Size = UDim2.new(1, 0, 0, 35)
+        skillButton.Position = UDim2.new(0, 0, 0, buttonY)
+        skillButton.BackgroundColor3 = table.find(selectedSkills, skill) and Color3.fromRGB(150, 20, 70) or Color3.fromRGB(200, 20, 90)
+        skillButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        skillButton.Font = Enum.Font.SourceSansSemibold
+        skillButton.TextSize = 14
+        skillButton.Parent = skillsSelectionFrame
+        local skillButtonCorner = Instance.new("UICorner")
+        skillButtonCorner.CornerRadius = UDim.new(0, 8)
+        skillButtonCorner.Parent = skillButton
+
+        skillButton.MouseButton1Click:Connect(function()
+            if table.find(selectedSkills, skill) then
+                table.remove(selectedSkills, table.find(selectedSkills, skill))
+                skillButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+            else
+                table.insert(selectedSkills, skill)
+                skillButton.BackgroundColor3 = Color3.fromRGB(150, 20, 70)
+            end
+        end)
+
+        buttonY = buttonY + 40
+    end
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "Close"
+    closeButton.Size = UDim2.new(1, 0, 0, 35)
+    closeButton.Position = UDim2.new(0, 0, 0, buttonY)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Font = Enum.Font.SourceSansSemibold
+    closeButton.TextSize = 14
+    closeButton.Parent = skillsSelectionFrame
+    local closeButtonCorner = Instance.new("UICorner")
+    closeButtonCorner.CornerRadius = UDim.new(0, 8)
+    closeButtonCorner.Parent = closeButton
+
+    closeButton.MouseButton1Click:Connect(function()
+        skillsSelectionFrame:Destroy()
+        skillsSelectionFrame = nil
+    end)
+end)
+
+-- Class Spin Section (Ascendant)
+local classSpinEnabled = false
+local classSpinLoopRunning = false
+local allClasses = {"Tempest", "Jajanken", "Frost Phoenix", "Tanktop", "Thor", "Azure", "Atomic", "Esoteric Knight", "Eclipse", "Malevolent", "Infinity", "Slime", "Psycho"} -- All Ascendant classes
+local selectedClasses = {} -- Store selected Ascendant classes
+
+-- Function to handle Ascendant class spinning
+local function spinClass()
+    while classSpinEnabled do
+        local classLabel = player.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel
+        local currentClass = classLabel.Text
+        if table.find(selectedClasses, currentClass) then
+            print("Got a selected class:", currentClass)
+            break
+        end
+
+        local args = {
+            [1] = "Ascendant"
+        }
+
+        local success, errorMessage = pcall(function()
+            game:GetService("ReplicatedStorage").Modules.Net:FindFirstChild("RF/SpinClass"):InvokeServer(unpack(args))
+        end)
+
+        if not success then
+            warn("Ascendant Spin Class Error: ", errorMessage)
+            break
+        end
+        task.wait(0.05)
+    end
+    classSpinLoopRunning = false
+end
+
+local spinButton = Instance.new("TextButton")
+spinButton.Text = "Auto Spin: OFF"
+spinButton.Size = UDim2.new(1, 0, 0, 35)
+spinButton.Position = UDim2.new(0, 0, 0, 120) -- Adjusted position
+spinButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+spinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spinButton.Font = Enum.Font.SourceSansSemibold
+spinButton.TextSize = 14
+spinButton.Parent = frame
+local spinButtonCorner = Instance.new("UICorner")
+spinButtonCorner.CornerRadius = UDim.new(0, 8)
+spinButtonCorner.Parent = spinButton
+
+spinButton.MouseButton1Click:Connect(function()
+    classSpinEnabled = not classSpinEnabled
+    spinButton.Text = "Auto Spin: " .. (classSpinEnabled and "ON" or "OFF")
+    if classSpinEnabled and not classSpinLoopRunning then
+        classSpinLoopRunning = true
+        task.spawn(spinClass)
+    end
+end)
+
+-- Class Selection Button (Opens the selection GUI)
+local selectClassesButton = Instance.new("TextButton")
+selectClassesButton.Text = "Select Classes"
+selectClassesButton.Size = UDim2.new(1, 0, 0, 35)
+selectClassesButton.Position = UDim2.new(0, 0, 0, 160) -- Adjusted position
+selectClassesButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+selectClassesButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectClassesButton.Font = Enum.Font.SourceSansSemibold
+selectClassesButton.TextSize = 14
+selectClassesButton.Parent = frame
+local selectClassesButtonCorner = Instance.new("UICorner")
+selectClassesButtonCorner.CornerRadius = UDim.new(0, 8)
+selectClassesButtonCorner.Parent = selectClassesButton
+
+local selectionFrame -- Declare selectionFrame outside the function
+
+selectClassesButton.MouseButton1Click:Connect(function()
+    -- Check if the selection frame already exists
+    if selectionFrame and selectionFrame.Parent then
+        selectionFrame:Destroy() -- Close existing frame
+        selectionFrame = nil
+        return
+    end
+
+    -- Create a new Frame for class selection
+    selectionFrame = Instance.new("Frame")
+    selectionFrame.Size = UDim2.new(0, 200, 0, 250)
+    selectionFrame.Position = UDim2.new(0.5, -100, 0.5, -125)
+    selectionFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    selectionFrame.BorderSizePixel = 2
+    selectionFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    selectionFrame.Parent = screenGui
+    local selectionFrameCorner = Instance.new("UICorner")
+    selectionFrameCorner.CornerRadius = UDim.new(0, 10)
+    selectionFrameCorner.Parent = selectionFrame
+
+    local selectionTitle = Instance.new("TextLabel")
+    selectionTitle.Text = "Select Classes"
+    selectionTitle.Size = UDim2.new(1, 0, 0, 30)
+    selectionTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    selectionTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    selectionTitle.Font = Enum.Font.SourceSansBold
+    selectionTitle.TextSize = 16
+    selectionTitle.Parent = selectionFrame
+
+    local classButtonY = 30 -- Start position for buttons
+
+    -- Create a button for each class
+    for _, className in ipairs(allClasses) do
+        local classButton = Instance.new("TextButton")
+        classButton.Text = className
+        classButton.Size = UDim2.new(1, 0, 0, 35)
+        classButton.Position = UDim2.new(0, 0, 0, classButtonY)
+        classButton.BackgroundColor3 = table.find(selectedClasses, className) and Color3.fromRGB(150, 20, 70) or Color3.fromRGB(200, 20, 90)
+        classButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        classButton.Font = Enum.Font.SourceSansSemibold
+        classButton.TextSize = 14
+        classButton.Parent = selectionFrame
+        local classButtonCorner = Instance.new("UICorner")
+        classButtonCorner.CornerRadius = UDim.new(0, 8)
+        classButtonCorner.Parent = classButton
+
+        -- Toggle class selection
+        classButton.MouseButton1Click:Connect(function()
+            if table.find(selectedClasses, className) then
+                -- Deselect class
+                table.remove(selectedClasses, table.find(selectedClasses, className))
+                classButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+            else
+                -- Select class
+                table.insert(selectedClasses, className)
+                classButton.BackgroundColor3 = Color3.fromRGB(150, 20, 70)
+            end
+        end)
+
+        classButtonY = classButtonY + 40
+    end
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "Close"
+    closeButton.Size = UDim2.new(1, 0, 0, 35)
+    closeButton.Position = UDim2.new(0, 0, 0, classButtonY)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Font = Enum.Font.SourceSansSemibold
+    closeButton.TextSize = 14
+    closeButton.Parent = selectionFrame
+    local closeButtonCorner = Instance.new("UICorner")
+    closeButtonCorner.CornerRadius = UDim.new(0, 8)
+    closeButtonCorner.Parent = closeButton
+
+    closeButton.MouseButton1Click:Connect(function()
+        selectionFrame:Destroy()
+        selectionFrame = nil -- Clear the reference
+    end)
+end)
+
+-- Auto Quest Section
+local autoQuestEnabled = false
+local questNumber = 16
+local autoQuestLoopRunning = false
+
+local questButton = Instance.new("TextButton")
+questButton.Text = "Auto Quest: OFF"
+questButton.Size = UDim2.new(1, 0, 0, 35)
+questButton.Position = UDim2.new(0, 0, 0, 200) -- Adjusted position
+questButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+questButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+questButton.Font = Enum.Font.SourceSansSemibold
+questButton.TextSize = 14
+questButton.Parent = frame
+local questButtonCorner = Instance.new("UICorner")
+questButtonCorner.CornerRadius = UDim.new(0, 8)
+questButtonCorner.Parent = questButton
+
+local function getQuest()
+    while autoQuestEnabled do
+        local args = {
+            [1] = "GetAscendantQuest",
+            [2] = questNumber
+        }
+        ReplicatedStorage.Modules.Net:FindFirstChild("RE/Quest"):FireServer(unpack(args))
+        task.wait(2)
+    end
+    autoQuestLoopRunning = false
+end
+
+questButton.MouseButton1Click:Connect(function()
+    autoQuestEnabled = not autoQuestEnabled
+    questButton.Text = "Auto Quest: " .. (autoQuestEnabled and "ON" or "OFF")
+    if autoQuestEnabled and not autoQuestLoopRunning then
+        autoQuestLoopRunning = true
+        task.spawn(getQuest)
+    end
+end)
+
+-- Quest Number Input
+local questInput = Instance.new("TextBox")
+questInput.Text = tostring(questNumber)
+questInput.Size = UDim2.new(1, 0, 0, 35)
+questInput.Position = UDim2.new(0, 0, 0, 235) -- Adjusted position
+questInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+questInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+questInput.Font = Enum.Font.SourceSansSemibold
+questInput.TextSize = 14
+questInput.Parent = frame
+local questInputCorner = Instance.new("UICorner")
+questInputCorner.CornerRadius = UDim.new(0, 8)
+questInputCorner.Parent = questInput
+
+questInput.FocusLost:Connect(function()
+    local newNumber = tonumber(questInput.Text)
+    if newNumber then
+        questNumber = newNumber
+    else
+        questInput.Text = tostring(questNumber)
+    end
+end)
+
+-- Noclip Section
+local noclipEnabled = false
+
+local noclipButton = Instance.new("TextButton")
+noclipButton.Text = "Anchor: OFF"
+noclipButton.Size = UDim2.new(1, 0, 0, 35)
+noclipButton.Position = UDim2.new(0, 0, 0, 275)
+noclipButton.BackgroundColor3 = Color3.fromRGB(200, 20, 90)
+noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+noclipButton.Font = Enum.Font.SourceSansSemibold
+noclipButton.TextSize = 14
+noclipButton.Parent = frame
+local noclipButtonCorner = Instance.new("UICorner")
+noclipButtonCorner.CornerRadius = UDim.new(0, 8)
+noclipButtonCorner.Parent = noclipButton
+
+local function updateNoclip(character)
+    if noclipEnabled and character then
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    elseif character then
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+noclipButton.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    noclipButton.Text = "Anchor: " .. (noclipEnabled and "ON" or "OFF")
+    updateNoclip(player.Character) -- Update immediately
+end)
+
+-- Update noclip every frame if enabled
+game:GetService("RunService").Heartbeat:Connect(function()
+    if noclipEnabled then
+        updateNoclip(player.Character)
+    end
+end)
+
+--Ensures the character is checked after respawn.
+local function onCharacterAdded(character)
+ updateNoclip(character)
+end
+
+player.CharacterAdded:Connect(onCharacterAdded)
+
+--runs the function for the first character.
+if player.Character then
+ onCharacterAdded(player.Character)
+end
+
+-- GUI Visibility Toggle (RightControl)
+local guiVisible = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
+        guiVisible = not guiVisible
+        screenGui.Enabled = guiVisible
+    end
+end)
